@@ -119,10 +119,10 @@ if len(sys.argv)>=3 and len(sys.argv)<=4:
     abi = json.loads(open(sys.argv[1]).read())
 elif len(sys.argv)==2:
     import requests
-    defaultAddress = sys.argv[1]
+    address = sys.argv[1]
     abi = None
     for endpoint in ["evm.flowscan.io", "evm-testnet.flowscan.io"]:
-        url = f"https://{endpoint}/api/v2/smart-contracts/{defaultAddress}"
+        url = f"https://{endpoint}/api/v2/smart-contracts/{address}"
         r = requests.get(url)
         if r.status_code==200:
             j = r.json()
@@ -130,6 +130,8 @@ elif len(sys.argv)==2:
                 continue
             contractName = j["name"]
             abi = j["abi"]
+            defaultAddress = f"EVM.addressFromString(\"{address}\")" 
+
 
     if not abi:
         print("contract not found")
