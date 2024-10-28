@@ -2,6 +2,10 @@ import json
 import sys
 
 typeMap = {
+    "bytes32": "[UInt8]",
+    "bytes4": "[UInt8]",
+    "bytes": "[UInt8]",
+
     "string": "String",
     "bool": "Bool",
     "uint": "UInt",
