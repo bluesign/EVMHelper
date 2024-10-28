@@ -31,11 +31,24 @@ def mapType(t):
         return "[" + mapType(inner) + "]"
     return typeMap[t]
 
-class AbiFunction:
 
+used_names = []
+
+class AbiFunction:
+    
     def __init__(self, function):
         self.function = function
-        self.name = function["name"]
+        
+        counter = 2
+        candidate_name = function["name"]
+        while candidate_name in used_names:
+            candidate_name = function["name"] + str(counter)
+            counter=counter+1
+            if candidate_name not in used_names:
+                break
+        used_names.append(candidate_name)
+
+        self.name = candidate_name
         self.inputs = function["inputs"]
         self.isPayable = "stateMutability" in function and function["stateMutability"]=="payable"
         self.outputs = function["outputs"]
