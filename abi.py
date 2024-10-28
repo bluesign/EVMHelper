@@ -92,12 +92,12 @@ class AbiFunction:
             return f"\t{signature} {{ \n\t\tself.call(\"{self.selector}\", [{cadenceReturnTypes}], {inputs}, {value})\n\t}}\n"
 
 
-if len(sys.argv) != 3:
+if len(sys.argv) < 3 or len(sys.argv)>4:
     print("Usage: python abi.py <abi.json> <name> [defaultAddress]")
     sys.exit(1)
 
 contractName = sys.argv[2]
-defaultAddress = f"EVM.addressFromString({sys.argv[3]})" if len(sys.argv) == 4 else "base.address()"
+defaultAddress = f"EVM.addressFromString(\"{sys.argv[3]}\")" if len(sys.argv) == 4 else "base.address()"
 
 abi = json.loads(open(sys.argv[1]).read())
 
@@ -144,7 +144,7 @@ print("""   access(all) attachment %s for EVM.CadenceOwnedAccount {
         }
         
         access(EVM.Owner) fun setGasLimit(_ gasLimit: UInt64){
-          self.contractAddress = contractAddress    
+          self.gasLimit = gasLimit    
         }
         
         init(){
