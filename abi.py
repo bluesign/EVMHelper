@@ -110,7 +110,8 @@ for function in abi:
 
 print("""   access(all) attachment %s for EVM.CadenceOwnedAccount {
         access(EVM.Owner) var contractAddress: EVM.EVMAddress
-        
+        access(EVM.Owner) var gasLimit: UInt64
+
         access(EVM.Owner) fun call(
           _ signature:String, 
           _ returnTypes: [Type], 
@@ -122,7 +123,7 @@ print("""   access(all) attachment %s for EVM.CadenceOwnedAccount {
           var lastResult = base.call(
             to: self.contractAddress,
             data: data,
-            gasLimit: 15000000,
+            gasLimit: self.gasLimit,
             value: EVM.Balance(attoflow:value)
           )
           
@@ -142,8 +143,13 @@ print("""   access(all) attachment %s for EVM.CadenceOwnedAccount {
           self.contractAddress = contractAddress    
         }
         
+        access(EVM.Owner) fun setGasLimit(_ gasLimit: UInt64){
+          self.contractAddress = contractAddress    
+        }
+        
         init(){
           self.contractAddress = %s
+          self.gasLimit = 15_000_000
         }
     
 // Generated functions
