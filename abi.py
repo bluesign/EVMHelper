@@ -2,9 +2,9 @@ import json
 import sys
 
 typeMap = {
-    "bytes32": "[UInt8]",
-    "bytes4": "[UInt8]",
-    "bytes": "[UInt8]",
+    "bytes32": "EVM.Bytes32",
+    "bytes4": "EVM.Bytes4",
+    "bytes": "EVM.Bytes",
 
     "string": "String",
     "bool": "Bool",
@@ -37,6 +37,7 @@ class AbiFunction:
         self.function = function
         self.name = function["name"]
         self.inputs = function["inputs"]
+        self.isPayable = "stateMutability" in function and function["stateMutability"]=="payable"
         self.outputs = function["outputs"]
         self.selector = self.functionSelector()
         self.outputType = self.outputs[0]['type'] if len(self.outputs)>0 else None
@@ -54,23 +55,31 @@ class AbiFunction:
         types = [i["type"] for i in self.inputs]
         return f"{self.name}({','.join(types)})"
 
-    def cadenceFunctionSignature(self) -> (str, str):
-        args = ", ".join(
-            [f"{self.sanitizeFunctionArgName(i['name'])}: {mapType(i['type'])}" for i in self.inputs]
-        )
+    def cadenceFunctionSignature(self) -> (str, str, bool):
+        args = [f"{self.sanitizeFunctionArgName(i['name'])}: {mapType(i['type'])}" for i in self.inputs]
+        if self.isPayable:
+            args.append("value: UInt256")
+
+        args = ", ".join(args)
+
         output = ""
         if self.cadenceOutputType:
             output = f": {self.cadenceOutputType}?"
         return (
             f"access(EVM.Owner) fun {self.name}({args}){output}",
-            self.cadenceOutputType
+            self.cadenceOutputType,
         )
 
     def cadenceFunction(self):
         signature, returnType = self.cadenceFunctionSignature()
+        value = "nil"
+        if self.isPayable:
+            value = "value"
+
         cadenceReturnTypes = ",".join(
             [f"Type<{mapType(i['type'])}>()" for i in self.outputs]
         )
+
         inputNames = [self.sanitizeFunctionArgName(i['name']) for i in function['inputs']]
         if len(inputNames) > 0:
             inputs = f"[{', '.join(inputNames)}]"
@@ -78,9 +87,9 @@ class AbiFunction:
             inputs = "nil"
 
         if self.cadenceOutputType:
-            return f"\t{signature} {{ \n\t\treturn self.call(\"{self.selector}\", [{cadenceReturnTypes}], {inputs}) as? {returnType}\n\t}}\n"
+            return f"\t{signature} {{ \n\t\treturn self.call(\"{self.selector}\", [{cadenceReturnTypes}], {inputs}, {value}) as? {returnType}\n\t}}\n"
         else:
-            return f"\t{signature} {{ \n\t\tself.call(\"{self.selector}\", [{cadenceReturnTypes}], {inputs})\n\t}}\n"
+            return f"\t{signature} {{ \n\t\tself.call(\"{self.selector}\", [{cadenceReturnTypes}], {inputs}, {value})\n\t}}\n"
 
 
 if len(sys.argv) != 3:
@@ -105,7 +114,8 @@ print("""   access(all) attachment %s for EVM.CadenceOwnedAccount {
         access(EVM.Owner) fun call(
           _ signature:String, 
           _ returnTypes: [Type], 
-          _ data:[AnyStruct]?
+          _ data:[AnyStruct]?,
+          _ value: UInt256?
         ): AnyStruct{
         
           var data = EVM.encodeABIWithSignature(signature, data ??  [] as [AnyStruct])
@@ -113,7 +123,7 @@ print("""   access(all) attachment %s for EVM.CadenceOwnedAccount {
             to: self.contractAddress,
             data: data,
             gasLimit: 15000000,
-            value: EVM.Balance(attoflow:0)
+            value: EVM.Balance(attoflow:value)
           )
           
           if lastResult!.status != EVM.Status.successful{
