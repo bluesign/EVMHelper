@@ -48,7 +48,8 @@ class AbiFunction:
                 break
         used_names.append(candidate_name)
 
-        self.name = candidate_name
+        self.cadenceName = candidate_name
+        self.name = function["name"]
         self.inputs = function["inputs"]
         self.isPayable = "stateMutability" in function and function["stateMutability"]=="payable"
         self.outputs = function["outputs"]
@@ -79,7 +80,7 @@ class AbiFunction:
         if self.cadenceOutputType:
             output = f": {self.cadenceOutputType}?"
         return (
-            f"access(EVM.Owner) fun {self.name}({args}){output}",
+            f"access(EVM.Owner) fun {self.cadenceName}({args}){output}",
             self.cadenceOutputType,
         )
 
