@@ -31,6 +31,13 @@ def mapType(t):
         return "[" + mapType(inner) + "]"
     return typeMap[t]
 
+def usage():
+    print("Usage:\n"
+        "to get abi from flowscan:\n"
+        "  python abi.py <contractAddress>\n"
+        "to use local abi.json file\n"
+        "  python abi.py <abi.json> <name> [defaultAddress]\n")
+
 
 used_names = []
 
@@ -105,16 +112,33 @@ class AbiFunction:
         else:
             return f"\t{signature} {{ \n\t\tself.call(\"{self.selector}\", [{cadenceReturnTypes}], {inputs}, {value})\n\t}}\n"
 
+#0xA6B4571DAEcFe4Aa5456aD326fbe01BCf93525AC
+if len(sys.argv)>=3 and len(sys.argv)<=4:
+    contractName = sys.argv[2]
+    defaultAddress = f"EVM.addressFromString(\"{sys.argv[3]}\")" if len(sys.argv) == 4 else "base.address()"
+    abi = json.loads(open(sys.argv[1]).read())
+elif len(sys.argv)==2:
+    import requests
+    defaultAddress = sys.argv[1]
+    abi = None
+    for endpoint in ["evm.flowscan.io", "evm-testnet.flowscan.io"]:
+        url = f"https://{endpoint}/api/v2/smart-contracts/{defaultAddress}"
+        r = requests.get(url)
+        if r.status_code==200:
+            j = r.json()
+            if "name" not in j:
+                continue
+            contractName = j["name"]
+            abi = j["abi"]
 
-if len(sys.argv) < 3 or len(sys.argv)>4:
-    print("Usage: python abi.py <abi.json> <name> [defaultAddress]")
+    if not abi:
+        print("contract not found")
+        sys.exit(1)
+else:
+    usage()
     sys.exit(1)
 
-contractName = sys.argv[2]
-defaultAddress = f"EVM.addressFromString(\"{sys.argv[3]}\")" if len(sys.argv) == 4 else "base.address()"
-
-abi = json.loads(open(sys.argv[1]).read())
-
+  
 functions  = ""
 for function in abi:
     # only process functions
